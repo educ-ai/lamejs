@@ -15382,11 +15382,12 @@ function ID3Tag() {
     }
 }
 
-function Mp3Encoder(channels, samplerate, kbps) {
-    if (arguments.length != 3) {
-        console.error('WARN: Mp3Encoder(channels, samplerate, kbps) not specified');
+function Mp3Encoder(channels, in_samplerate, out_samplerate, kbps) {
+    if (arguments.length != 4) {
+        console.error('WARN: Mp3Encoder(channels, in_samplerate, out_samplerate, kbps) not specified');
         channels = 1;
-        samplerate = 44100;
+        in_samplerate = 44100;
+        out_samplerate = 0;
         kbps = 128;
     }
     var lame = new Lame();
@@ -15419,7 +15420,10 @@ function Mp3Encoder(channels, samplerate, kbps) {
     var gfp = lame.lame_init();
 
     gfp.num_channels = channels;
-    gfp.in_samplerate = samplerate;
+    gfp.in_samplerate = in_samplerate;
+    if (out_samplerate > 0) {
+        gfp.out_samplerate = out_samplerate;
+    }
     gfp.brate = kbps;
     gfp.mode = MPEGMode.STEREO;
     gfp.quality = 3;

@@ -63,11 +63,14 @@ function ID3Tag() {
     }
 }
 
-function Mp3Encoder(channels, samplerate, kbps) {
-    if (arguments.length != 3) {
-        console.error('WARN: Mp3Encoder(channels, samplerate, kbps) not specified');
+function Mp3Encoder(channels, in_samplerate, out_samplerate, kbps) {
+    if (arguments.length != 4) {
+        console.error(
+            "WARN: Mp3Encoder(channels, in_samplerate, out_samplerate, kbps) not specified"
+        );
         channels = 1;
-        samplerate = 44100;
+        in_samplerate = 44100;
+        out_samplerate = 0;
         kbps = 128;
     }
     var lame = new Lame();
@@ -100,13 +103,10 @@ function Mp3Encoder(channels, samplerate, kbps) {
     var gfp = lame.lame_init();
 
     gfp.num_channels = channels;
-    gfp.in_samplerate = samplerate;
-    gfp.brate = kbps;
-    gfp.mode = MPEGMode.STEREO;
-    gfp.quality = 3;
-    gfp.bWriteVbrTag = false;
-    gfp.disable_reservoir = true;
-    gfp.write_id3tag_automatic = false;
+    gfp.in_samplerate = in_samplerate;
+    if (out_samplerate > 0) {
+        gfp.out_samplerate = out_samplerate;
+    }
 
     var retcode = lame.lame_init_params(gfp);
     assert(0 == retcode);
@@ -125,7 +125,15 @@ function Mp3Encoder(channels, samplerate, kbps) {
             mp3buf = new_byte(mp3buf_size);
         }
 
-        var _sz = lame.lame_encode_buffer(gfp, left, right, left.length, mp3buf, 0, mp3buf_size);
+        var _sz = lame.lame_encode_buffer(
+            gfp,
+            left,
+            right,
+            left.length,
+            mp3buf,
+            0,
+            mp3buf_size
+        );
         return new Int8Array(mp3buf.subarray(0, _sz));
     };
 

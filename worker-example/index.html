@@ -26,17 +26,31 @@
                                 <option>40</option>
                                 <option>48</option>
                                 <option>56</option>
-                                <option>64</option>
+                                <option selected>64</option>
                                 <option>80</option>
                                 <option>96</option>
                                 <option>112</option>
-                                <option selected="">128</option>
+                                <option>128</option>
                                 <option>192</option>
                                 <option>224</option>
                                 <option>256</option>
                                 <option>320</option>
                             </select>
                             <span class="input-group-addon">kbit/s</span>
+                        </div>
+                        <div class="input-group">
+                            <select id="outSampleRate" class="form-control">
+                                <option>48000</option>
+                                <option>44100</option>
+                                <option>32000</option>
+                                <option>24000</option>
+                                <option>22050</option>
+                                <option>16000</option>
+                                <option>12000</option>
+                                <option selected>11025</option>
+                                <option>8000</option>
+                            </select>
+                            <span class="input-group-addon">Hz</span>
                         </div>
                     </div>
 
@@ -95,9 +109,11 @@
             $('#inputForm').hide();
 
             var bitRate = parseInt($('#bitRate').val(), 10);
+            var outSampleRate = parseInt($('#outSampleRate').val(), 10);
 
             converter.convert(file, {
-                bitRate: bitRate
+                bitRate: bitRate,
+                outSampleRate: outSampleRate
             }, function (blob) {
                 //log blog
                 var blobUrl = window.URL.createObjectURL(blob);

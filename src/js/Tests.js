@@ -15,7 +15,7 @@ function testFullLength() {
     var w = WavHeader.readHeader(new DataView(sampleBuf));
     var samples = new Int16Array(sampleBuf, w.dataOffset, w.dataLen / 2);
     var remaining = samples.length;
-    var lameEnc = new Mp3Encoder(); //w.channels, w.sampleRate, 128);
+    var lameEnc = new Mp3Encoder(); //w.channels, w.sampleRate, 0, 128);
     var maxSamples = 1152;
 
     var fd = fs.openSync(path.join("testdata", "testjs2.mp3"), "w");
@@ -36,7 +36,7 @@ function testFullLength() {
     }
     fs.closeSync(fd);
     time = new Date().getTime() - time;
-    console.log('done in ' + time + 'msec');
+    console.log("done in " + time + "msec");
 }
 
 function testStereo44100() {
@@ -56,7 +56,7 @@ function testStereo44100() {
     assert(remaining1 == remaining2);
     assert(w1.sampleRate == w2.sampleRate);
 
-    var lameEnc = new Mp3Encoder(2, w1.sampleRate, 128);
+    var lameEnc = new Mp3Encoder(2, w1.sampleRate, w1.sampleRate, 128);
     var maxSamples = 1152;
 
     var time = new Date().getTime();

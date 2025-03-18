@@ -4,7 +4,7 @@
   // [Worker Initialization]
   // Creates a separate environment for MP3 conversion so it doesn't block the main application.
   console.log('MP3 conversion worker started.');
-  importScripts('../lame.min.js');
+  importScripts('../lame.all.js');
   importScripts("../utils.js");
 
   // [Shared Variables]
@@ -80,7 +80,7 @@
 
     // [Encoder Configuration]
     // Aligns MP3 settings (channels, sample rate, bit rate) with the Wave data.
-    mp3Encoder = new lamejs.Mp3Encoder(channelCount, inputData.sampleRate, config.bitRate || 96);
+    mp3Encoder = new lamejs.Mp3Encoder(channelCount, inputData.sampleRate, config.outSampleRate || 0, config.bitRate || 96);
 
     // [Batch Processing Loop]
     // Breaks the audio into manageable chunks, encoding each piece and posting progress.
