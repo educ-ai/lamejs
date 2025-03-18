@@ -5,11 +5,12 @@
   // Creates a separate environment for MP3 conversion so it doesn't block the main application.
   console.log('MP3 conversion worker started.');
   importScripts('../lame.min.js');
+  importScripts("../utils.js");
 
   // [Shared Variables]
   // Stores encoding parameters and temporary data used throughout the process.
   var mp3Encoder, maxSamples = 1152,
-    wav, samplesLeft, config, dataBuffer, samplesRight;
+    samplesLeft, config, dataBuffer, samplesRight;
 
   // [Buffer Reset]
   // Empties previously stored MP3 data, ensuring each new encoding starts clean.
@@ -31,38 +32,55 @@
     clearBuffer();
   };
 
+  // [Wave Header Processing]
+  // Extracts and organizes parameters needed for encoding.
+  var extractParamsFromWav = function (arrayBuffer) {
+    var wavHeader = lamejs.WavHeader.readHeader(new DataView(arrayBuffer));
+    console.log('wave:', wavHeader);
+    if (!wavHeader) {
+      self.postMessage({cmd: 'error', msg: 'Specified file is not a Wave file'});
+      return null;
+    }
+
+    // [Sample Extraction]
+    var dataView = new Int16Array(arrayBuffer, wavHeader.dataOffset, wavHeader.dataLen / 2);
+    var sampleChannels = {
+      left: wavHeader.channels === 1 ? dataView : new Int16Array(wavHeader.dataLen / (2 * wavHeader.channels)),
+      right: wavHeader.channels === 2 ? new Int16Array(wavHeader.dataLen / (2 * wavHeader.channels)) : undefined
+    };
+
+    // [Channel Splitting]
+    if (wavHeader.channels > 1) {
+      for (var i = 0; i < sampleChannels.left.length; i++) {
+        sampleChannels.left[i] = dataView[i * 2];
+        sampleChannels.right[i] = dataView[i * 2 + 1];
+      }
+    }
+
+    return {
+      sampleChannels,
+      sampleRate: wavHeader.sampleRate
+    };
+  };
+
   // [Main Encoding Routine]
   // Handles reading the Wave file info, setting up the encoder, and processing the audio data in batches.
   var encode = function (arrayBuffer) {
     // [Wave Header Reading]
     // Extracts audio format details, ensuring it is valid before proceeding with MP3 conversion.
-    wav = lamejs.WavHeader.readHeader(new DataView(arrayBuffer));
-    console.log('wave:', wav);
-    if (!wav) {
+    const inputData = extractParamsFromWav(arrayBuffer)
+    if (!inputData) {
       self.postMessage({cmd: 'error', msg: 'Specified file is not a Wave file'});
       return;
     }
 
-    // [Sample Extraction]
-    // Creates a numeric view of the raw audio data starting at the Wave header offset. 
-    // For mono audio, directly uses this data. 
-    // For stereo, allocates separate arrays to later store left and right channel samples individually.
-    var dataView = new Int16Array(arrayBuffer, wav.dataOffset, wav.dataLen / 2);
-    samplesLeft = wav.channels === 1 ? dataView : new Int16Array(wav.dataLen / (2 * wav.channels));
-    samplesRight = wav.channels === 2 ? new Int16Array(wav.dataLen / (2 * wav.channels)) : undefined;
-
-    // [Channel Splitting]
-    // For stereo, distributes every other sample into separate left/right arrays for independent encoding.
-    if (wav.channels > 1) {
-      for (var i = 0; i < samplesLeft.length; i++) {
-        samplesLeft[i] = dataView[i * 2];
-        samplesRight[i] = dataView[i * 2 + 1];
-      }
-    }
+    samplesLeft = inputData.sampleChannels.left
+    samplesRight = inputData.sampleChannels.right
+    const channelCount = samplesRight === undefined ? 1 : 2
 
     // [Encoder Configuration]
     // Aligns MP3 settings (channels, sample rate, bit rate) with the Wave data.
-    mp3Encoder = new lamejs.Mp3Encoder(wav.channels, wav.sampleRate, config.bitRate || 96);
+    mp3Encoder = new lamejs.Mp3Encoder(channelCount, inputData.sampleRate, config.bitRate || 96);
 
     // [Batch Processing Loop]
     // Breaks the audio into manageable chunks, encoding each piece and posting progress.
@@ -91,9 +109,6 @@
   // [Finalization]
   // Completes encoding by flushing any pending frames, returning final MP3 data to the main thread.
   var finish = function () {
-    if (!wav) {
-      return;
-    }
     var mp3buf = mp3Encoder.flush();
     appendToBuffer(mp3buf);
     self.postMessage({
